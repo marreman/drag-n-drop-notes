@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<ml-desk>
+  <ml-object>
+    <ml-note>
+      A wiki (/ˈwɪki/ (audio speaker iconlisten) WIK-ee) is a hypertext
+      publication collaboratively edited and managed by its own audience
+      directly.
+    </ml-note>
+  </ml-object>
+</ml-desk>
+
+<style>
+  html,
+  body {
+    margin: 0;
+    width: 200vw;
+    height: 200vh;
+  }
+  ml-desk {
+    display: block;
+    height: 100%;
+    width: 100%;
+    overflow: scroll;
+  }
+  ml-object {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    border: 1px dashed lightgray;
+    padding: 7px;
+    border-radius: 5px;
+    width: 200px;
+  }
+  ml-object:hover {
+    border: 1px dashed gray;
+  }
+  ml-object[selected="true"] {
+    border: 1px solid black;
+  }
+  ml-object > button {
+    cursor: grab;
+  }
+  ml-object > button:active {
+    cursor: grabbing;
+  }
+  ml-object > textarea {
+    display: block;
+  }
+  ml-note {
+    display: block;
+    font-family: sans-serif;
+  }
+</style>
+<script>
+  customElements.define(
+    "ml-note",
+    class MLNote extends HTMLElement {
+      connectedCallback() {
+        this.contentEditable = true
+      }
+    }
+  )
+
+  customElements.define(
+    "ml-object",
+    class MLObject extends HTMLElement {
+      connectedCallback() {
+        this.tabIndex = 1
+
+        document.addEventListener("ml-deselect-all", () => {
+          this.removeAttribute("selected")
+        })
+
+        this.addEventListener("mousedown", (event) => {
+          this.dispatchEvent(new CustomEvent("ml-select", { bubbles: true }))
+          this.setAttribute("selected", true)
+        })
+      }
+    }
+  )
+
+  customElements.define(
+    "ml-desk",
+    class MLDesk extends HTMLElement {
+      constructor() {
+        super()
+        document.addEventListener("keyup", this.onKeyUp.bind(this))
+        document.addEventListener("mousedown", this.onMouseDown)
+        document.addEventListener("mouseup", this.onMouseUp)
+        document.addEventListener("mousemove", this.onMouseMove)
+        this.addEventListener("ml-select", this.dispatchDeselectAll)
+        document.addEventListener("click", this.dispatchDeselectAll)
+      }
+
+      dispatchDeselectAll(event) {
+        document.dispatchEvent(new CustomEvent("ml-deselect-all"))
+      }
+
+      onKeyUp(event) {
+        if (document.activeElement.localName === "ml-note") return
+
+        if (event.key === "s") {
+          const toStack = [...this.querySelectorAll("ml-object[selected=true]")]
+        } else if (event.key === "n") {
+          const note = document.createElement("ml-note")
+          const object = document.createElement("ml-object")
+          object.appendChild(note)
+          this.appendChild(object)
+          note.focus()
+        } else if (event.key === "Escape") {
+          this.dispatchDeselectAll()
+        }
+      }
+
+      onMouseDown(event) {
+        if (event.target.localName !== "ml-object") return
+
+        this.state = {
+          target: event.target,
+          offset: {
+            x: event.clientX - event.target.offsetLeft,
+            y: event.clientY - event.target.offsetTop,
+          },
+        }
+      }
+
+      onMouseUp(event) {
+        this.state = undefined
+      }
+
+      onMouseMove(event) {
+        if (!this.state) return
+        this.state.target.style.left =
+          event.clientX - this.state.offset.x + "px"
+        this.state.target.style.top = event.clientY - this.state.offset.y + "px"
+      }
+    }
+  )
+</script>
